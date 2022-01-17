@@ -1,4 +1,4 @@
-name = "AbstractMover"
+name = "AbstractActuator"
 uuid = "846a0f3d-20fc-416e-8846-8178ce77b5b3"
 authors = ["Paulo Jabardo <pjabardo@ipt.br>"]
 version = "0.1.0"

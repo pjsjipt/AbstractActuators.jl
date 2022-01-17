@@ -17,7 +17,7 @@ export stopmotion, waituntildone
 abstract type AbstractActuator  end
 abstract type AbstractRobot <: AbstractActuator end
 
-abstract type AbstractCartesianRobo <: AbstractRobot end
+abstract type AbstractCartesianRobot <: AbstractRobot end
 
 
 

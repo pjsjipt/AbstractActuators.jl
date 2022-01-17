@@ -1,14 +1,14 @@
 ```@meta
-CurrentModule = AbstractActuator
+CurrentModule = AbstractActuators
 ```
 
 # AbstractActuator
 
-Documentation for [AbstractActuator](https://github.com/pjsjipt/AbstractActuator.jl).
+Documentation for [AbstractActuators](https://github.com/pjsjipt/AbstractActuators.jl).
 
 ```@index
 ```
 
 ```@autodocs
-Modules = [AbstractActuator]
+Modules = [AbstractActuators]
 ```

@@ -1,4 +1,4 @@
-module AbstractMover
+module AbstractActuators
 
 
 export AbstractActuator, AbstractRobot, AbstractCartesianRobot, numaxes 

@@ -1,6 +1,6 @@
-using AbstractMover
+using AbstractActuators
 using Test
 
-@testset "AbstractMover.jl" begin
+@testset "AbstractActuators.jl" begin
     # Write your tests here.
 end

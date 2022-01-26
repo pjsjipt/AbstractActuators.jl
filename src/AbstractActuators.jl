@@ -19,8 +19,8 @@ abstract type AbstractRobot <: AbstractActuator end
 
 abstract type AbstractCartesianRobot <: AbstractRobot end
 
-abstract type AbstractExpPoint <: end
 
+include("testmatrix.jl")
 
 
 """

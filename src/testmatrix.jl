@@ -123,7 +123,7 @@ Return the index of the current position during the experiment.
 """
 pointidx(pts::TestMatrix) = pts.idx
 
-numpoints(pts::TestMatrix) = size(pts,1)
+numpoints(pts::TestMatrix) = size(pts.pts,1)
 """
 Returns the number of variables or degrees of freedome that an `AbstractPositioner` or
 `TestMatrix` object has.
@@ -396,13 +396,16 @@ struct Positioner1d{T<:AbstractActuator} <: AbstractPositioner
 end
 
 numdof(m::Positioner1d) = 1
-moveto(m::Positioner1d, x) = move(m, x[1])
+moveto(m::Positioner1d, x) = move(m.dev, x[1])
 
 struct PositionerNd{T<:AbstractCartesianRobot} <: AbstractPositioner
     dev::T
     axes::Vector{Int}
+    function PositionerNd(dev::T, axes::AbstractVector{<:Integer}) where {T<:AbstractCartesianRobot}
+        return new{T}(dev, [Int(ax) for ax in axes])
+    end
+    
 end
-
 numdof(m::PositionerNd) = length(m.axes)
     
 function moveto(m::PositionerNd, x::AbstractVector{<:Real})

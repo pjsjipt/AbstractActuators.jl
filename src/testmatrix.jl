@@ -1,8 +1,9 @@
 export AbstractPositioner, setinitpos!, movenext!, moveto, movetopoint!
 export PositionerGrid, TestMatrix, testpoint, setpoint!, incpoint!, pointidx
-export TestPositioner, numdof, numpoints
+export CartesianTestMatrix, TestMatrixProduct
+export TestPositioner, numaxes, numpoints
 export Positioner1d, PositionerNd
-
+export matrixparams
 """
 `AbstractPositioner`
 
@@ -21,56 +22,56 @@ abstract type AbstractPositioner end
 
 
 
+abstract type AbstractTestMatrix end
 
 
-
-mutable struct TestMatrix
+mutable struct TestMatrix <: AbstractTestMatrix
     "Index of current point"
     idx::Int
-    "Name of variables that characterize the point"
-    vars::Vector{String}
+    "Name of parameters that characterize the point"
+    params::Vector{String}
     "Set of positions in the test matrix"
     pts::Matrix{Float64}
 end
 
 
 """
-`TestMatrix(vars, pts)`
+`TestMatrix(params, pts)`
 `TestMatrix(;kw...)`
 
 Defines a sequence of predefined points that characterize an experiment.
 
 The points are defined by a `Matrix{Float64}` where each column corresponds to a 
-variable or degree of freedom of the system. Each row characterizes a specific point.
+parameter (degree of freedom) of the system. Each row characterizes a specific point.
 
 ## Arguments
 
- * `vars` Vector/tuple containing the names of the variables that define the position. It will be converted to a string.
+ * `params` Vector/tuple containing the names of the parameters that define the position. It will be converted to a string.
  * `pts` Matrix that contains the points. Each column corresponds to a variable and each row to a single point.
  * `kw...` Keyword arguments where the names of the keywords correspond to the variables and the values to the possible positions. The length of each keyword argument should be the same or 1. If its 1, it will be repeated.
 
 """
-function TestMatrix(vars, pts::AbstractMatrix{Float64})
+function TestMatrix(params, pts::AbstractMatrix{Float64})
     
-    nvars = size(pts, 2)
+    npars = size(pts, 2)
     nvals = size(pts, 1)
     
-    length(vars) != nvars && thrown(ArgumentError("Wrong number of variable names!"))
+    length(params) != npars && thrown(ArgumentError("Wrong number of variable names!"))
     
-    testpts = zeros(Float64, nvals, nvars)
-    for i in 1:nvars
+    testpts = zeros(Float64, nvals, npars)
+    for i in 1:npars
         for k in 1:nvals
             testpts[k,i] = pts[k,i]
         end
     end
-    vars1 = [string(v) for v in vars]
-    return TestMatrix(0, vars1, testpts)
+    params1 = [string(v) for v in params]
+    return TestMatrix(0, params1, testpts)
 
 end
 
 function TestMatrix(;kw...) 
 
-    vars = [string(k) for k in keys(kw)]
+    params = [string(k) for k in keys(kw)]
     nvals = maximum(length(v) for (k,v) in kw)
 
     testpts = zeros(Float64, nvals, length(keys(kw)))
@@ -90,10 +91,25 @@ function TestMatrix(;kw...)
         end
         ivar += 1
     end
-    return TestMatrix(0, vars, testpts)
+    return TestMatrix(0, params, testpts)
     
 end
-    
+
+
+"""
+`matrixparams(pts)`
+
+Returns the names of the parameters.
+"""
+matrixparams(pts::AbstractTestMatrix) = pts.params
+
+
+"""
+`numpoints(pts)`
+
+Returns the number of points in a test matrix.
+"""
+numpoints(pts::TestMatrix) = size(pts.pts,1)
 
 """
 `testpoint(pts, i)`
@@ -107,31 +123,168 @@ testpoint(pts::TestMatrix, i) = pts.pts[i,:]
 
 Set the index of the current test point to 1
 """
-incpoint!(pts::TestMatrix) = pts.idx += 1
+incpoint!(pts::AbstractTestMatrix) = pts.idx += 1
 
 """
 `setpoint!(pts, idx)`
 
 Set the index of the current test point to `idx`
 """
-setpoint!(pts::TestMatrix, idx=1) = pts.idx = idx
+setpoint!(pts::AbstractTestMatrix, idx=1) = pts.idx = idx
 
 """
 `pointidx(move)`
 
 Return the index of the current position during the experiment.
 """
-pointidx(pts::TestMatrix) = pts.idx
+pointidx(pts::AbstractTestMatrix) = pts.idx
 
-numpoints(pts::TestMatrix) = size(pts.pts,1)
+
+
+mutable struct CartesianTestMatrix <: AbstractTestMatrix
+    idx::Int
+    params::Vector{String}
+    axes::Vector{Vector{Float64}}
+    pts::Matrix{Float64}
+end
+
 """
-Returns the number of variables or degrees of freedome that an `AbstractPositioner` or
-`TestMatrix` object has.
+`cartesianprod(x::Vector{Vector{T}})`
+`cartesianprod(x...)`
+
+Performs a cartesian product between vectors
+
 """
-function numdof end
+function cartesianprod(x::Vector{Vector{T}}) where {T}
+
+    npars = length(x)
+    n = length.(x)
+    ntot = prod(n)
+    pts = zeros(T, ntot, npars)
+    strd = zeros(Int, npars)
+    strd[1] = 1
+    for i in 2:npars
+        strd[i] = strd[i-1] * n[i-1]
+    end
+
+    for i in 1:npars # Each variable corresponds to a column
+        xi = x[i] # Select the variable
+        Ni = n[i]
+        Si = strd[i]
+        cnt = 1
+        Nr = ntot ÷ (Ni*Si)
+        for k in 1:Nr
+            for j in 1:Ni
+                for l in 1:Si
+                    pts[cnt,i] = xi[j]
+                    cnt += 1
+                end
+            end
+        end
+
+    end
+
+    return pts
+end
+cartesianprod(x1...) = cartesianprod([collect(y) for y in x1])
+
+"""
+`CartesianTestMatrix(;kw...)`
+
+Creates a test matrix that is a cartesian product  of independent parameters.
+This is useful if the test should be executed on a regular grid, x, y for example.
+In this grid, the length of x is n₁ and the length of y is n₂. The number of points
+in the test is therefore nx⋅ny.
+
+The first parameters run faster:
+
+```julia
+pts = CartesianMatrix(x=1:3, y=5:5:25)
+```
+
+In this case, 
+The points of the test matrix are
+
+| x  | y  |
+|----|----|
+| x₁ | y₁ |
+| x₂ | y₁ |
+| ⋮  | ⋮  |
+| xₙ₁| y₁ |
+| x₁ | y₂ |
+| x₂ | y₂ |
+| ⋮  | ⋮  |
+| xₙ₁| yₙ₂|
 
 
+"""
+function CartesianTestMatrix(;kw...)
+    params = string.(collect(keys(kw)))
+    axes = Vector{Float64}[]
+    npars = length(params)
+    for (k, v) in kw
+        push!(axes, [Float64(x) for x in v])
+    end
+    pts = cartesianprod(axes)
+    return CartesianTestMatrix(0, params, axes, pts)
+end
 
+numpoints(pts::CartesianTestMatrix) = size(pts.pts, 1)
+numaxes(pts::CartesianTestMatrix) = length(pts.params)
+testpoint(pts::CartesianTestMatrix, i) = pts.pts[i,:]
+
+
+    
+mutable struct TestMatrixProduct <: AbstractTestMatrix
+    idx::Int
+    points::Vector{AbstractTestMatrix}
+    ptsidx::Matrix{Int}
+    TestMatrixProduct(idx::Int, points::Vector{AbstractTestMatrix}, ptsidx::Matrix{Int}) = new(idx, points, ptsidx)
+end
+
+"""
+`TestMatrixProduct(pts...)`
+
+
+Cartesian produc between different AbstractTestMatrix objects.
+"""
+function TestMatrixProduct(pts...)
+    points = [p for p in pts]
+    n = numpoints.(points)
+    nmats = length(points)
+    ii = Vector{Int}[]
+
+    for i in 1:nmats
+        push!(ii, collect(1:n[i]))
+    end
+    ptsidx = cartesianprod(ii)
+
+    return TestMatrixProduct(0, points, ptsidx)
+end
+
+numpoints(pts::TestMatrixProduct) = size(pts.ptsidx,1)
+numaxes(pts::TestMatrixProduct) = sum(numaxes.(pts.points))
+function matrixparams(pts::TestMatrixProduct)
+    params = String[]
+
+    for p in pts.points
+        append!(params, matrixparams(p))
+    end
+    return params
+end
+
+function testpoint(pts::TestMatrixProduct, i)
+    x = Float64[]
+
+    for (k,p) in enumerate(pts.points)
+        ki = pts.ptsidx[i,k]
+        append!(x, testpoint(p, ki))
+    end
+    return x
+    
+end
+
+                
 import Base.*
 
 """
@@ -155,13 +308,13 @@ TestMatrix(0, ["z"], [1.0; 2.0; 3.0; 4.0;;])
 julia> M = M1*M2
 TestMatrix(0, ["x", "y", "z"], [1.0 100.0 1.0; 1.0 100.0 2.0; … ; 3.0 300.0 3.0; 3.0 300.0 4.0])
 
-julia> numdof(M1)
+julia> numaxes(M1)
 2
 
-julia> numdof(M2)
+julia> numaxes(M2)
 1
 
-julia> numdof(M)
+julia> numaxes(M)
 3
 
 julia> M.pts
@@ -183,14 +336,14 @@ julia> M.pts
 function *(m1::TestMatrix, m2::TestMatrix)
 
     # Variables must be different in each TestMatrix
-    if length(intersect(m1.vars, m2.vars)) != 0
+    if length(intersect(m1.params, m2.params)) != 0
         throw(ArgumentError("No repeated variables in TestMatrix allowed"))
     end
 
-    vars = vcat(m1.vars, m2.vars)
+    params = vcat(m1.params, m2.params)
     
-    nv1 = length(m1.vars)
-    nv2 = length(m2.vars)
+    nv1 = length(m1.params)
+    nv2 = length(m2.params)
 
     n1 = size(m1.pts,1)
     n2 = size(m2.pts,1)
@@ -209,18 +362,18 @@ function *(m1::TestMatrix, m2::TestMatrix)
             row += 1
         end
     end
-    return TestMatrix(vars, pts)
+    return TestMatrix(params, pts)
 
 end
 
-numdof(M::TestMatrix) = length(M.vars)
+numaxes(M::TestMatrix) = length(M.params)
 
 """
 `setinitpos!(move, points)`
 
 Go to initial position of the [`TestMatrix`](@ref) where an experiment should start.
 """
-setinitpos!(move::AbstractPositioner, points::TestMatrix) =
+setinitpos!(move::AbstractPositioner, points::AbstractTestMatrix) =
     movetopoint!(move, points, 1)
 
 
@@ -228,12 +381,17 @@ setinitpos!(move::AbstractPositioner, points::TestMatrix) =
 `movenext!(move, points)`
 
 Move to the next point in `TestMatrix`.
+
+If the function reached the end of the points, the function returns `false` 
+and does nothing. Othwerwise, it returns `true`.
 """
-function movenext!(move::AbstractPositioner, points::TestMatrix) 
+function movenext!(move::AbstractPositioner, points::AbstractTestMatrix) 
     idx = pointidx(points)
+    idx == numpoints(points) && return false
     p = testpoint(points, idx+1)
     moveto(move, p)
     incpoint!(points)
+    return true
 end
 
 """
@@ -298,9 +456,9 @@ struct PositionerGrid{T1<:AbstractPositioner,T2<:AbstractPositioner} <:AbstractP
     
 end
 
-numdof(move::PositionerGrid, i) = i==1 ? numdof(move.move1) : numdof(move.move2)
+numaxes(move::PositionerGrid, i) = i==1 ? numaxes(move.move1) : numaxes(move.move2)
 
-numdof(move::PositionerGrid) = numdof(move, 1) + numdof(move, 2)
+numaxes(move::PositionerGrid) = numaxes(move, 1) + numaxes(move, 2)
 
 
 *(move1::T1, move2::T2) where {T1<:AbstractPositioner,T2<:AbstractPositioner} =
@@ -310,8 +468,8 @@ numdof(move::PositionerGrid) = numdof(move, 1) + numdof(move, 2)
 
 function setinitpos!(move::PositionerGrid, points::TestMatrix)
 
-    n1 = numdof(move.move1)
-    n2 = numdof(move.move2)
+    n1 = numaxes(move.move1)
+    n2 = numaxes(move.move2)
     
 
     x = testpoint(points, 1)
@@ -327,8 +485,8 @@ function setinitpos!(move::PositionerGrid, points::TestMatrix)
 end
 function moveto(move::PositionerGrid, x::AbstractVector{<:Real})
     
-    x1 = Float64.(x[1:numdof(move,1)])
-    x2 = Float64.(x[numdof(move,1)+1:end])
+    x1 = Float64.(x[1:numaxes(move,1)])
+    x2 = Float64.(x[numaxes(move,1)+1:end])
 
     moveto(move.move1, x1)
     moveto(move.move2, x2)
@@ -336,12 +494,12 @@ end
 
 mutable struct TestPositioner <:AbstractPositioner
     "Variables (dof) of the test positioner"
-    vars::Vector{String}
+    params::Vector{String}
     "Current position of the test positioner"
     x::Vector{Float64}
-    TestPositioner(vars::Vector{String}, x::Vector{Float64}) = new(vars, x)
+    TestPositioner(params::Vector{String}, x::Vector{Float64}) = new(params, x)
 end
-numdof(move::TestPositioner) = length(move.vars)
+numaxes(move::TestPositioner) = length(move.params)
 
 """
 `TestPositioner("x", "y", "z", ...)
@@ -355,20 +513,20 @@ the number of degrees of freedom of the system.
 ##
 """
 function TestPositioner(v...)
-    vars = [string(x) for x in v]
-    n = length(vars)
+    params = [string(x) for x in v]
+    n = length(params)
     x = zeros(n)
-    return TestPositioner(vars, zeros(n))
+    return TestPositioner(params, zeros(n))
 end
 
-function TestPositioner(vars::AbstractVector)
-    v = [string(v) for v in vars]
+function TestPositioner(params::AbstractVector)
+    v = [string(v) for v in params]
     x = zeros(length(v))
     return TestPositioner(v, x)
 end
 
 function moveto(move::TestPositioner, x)
-    length(x) != numdof(move) && error("Wrong number of arguments")
+    length(x) != numaxes(move) && error("Wrong number of arguments")
         
     move.x .= x
     print("Moved to ")
@@ -376,7 +534,7 @@ function moveto(move::TestPositioner, x)
     N = length(x)
     c = "("
     for i in 1:N
-        print("$c$(move.vars[i])")
+        print("$c$(move.params[i])")
         c = ", "
     end
     print(") = ")
@@ -390,12 +548,17 @@ end
 
 
 
+"""
+`Positioner1d(dev::AbstractActuator)`
 
+Implements an `AbstractPositioner` object using the generic interface for systems
+with 1 degree of freedom.
+"""
 struct Positioner1d{T<:AbstractActuator} <: AbstractPositioner
     dev::T
 end
 
-numdof(m::Positioner1d) = 1
+numaxes(m::Positioner1d) = 1
 moveto(m::Positioner1d, x) = move(m.dev, x[1])
 
 struct PositionerNd{T<:AbstractCartesianRobot} <: AbstractPositioner
@@ -406,7 +569,7 @@ struct PositionerNd{T<:AbstractCartesianRobot} <: AbstractPositioner
     end
     
 end
-numdof(m::PositionerNd) = length(m.axes)
+numaxes(m::PositionerNd) = length(m.axes)
     
 function moveto(m::PositionerNd, x::AbstractVector{<:Real})
 

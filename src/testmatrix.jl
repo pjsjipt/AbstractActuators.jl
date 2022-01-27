@@ -1,6 +1,8 @@
 export AbstractPositioner, setinitpos!, movenext!, moveto, movetopoint!
 export PositionerGrid, TestMatrix, testpoint, setpoint!, incpoint!, pointidx
 export TestPositioner, numdof, numpoints
+export Positioner1d, PositionerNd
+
 """
 `AbstractPositioner`
 
@@ -387,6 +389,28 @@ function moveto(move::TestPositioner, x)
 end
 
 
+
+
+struct Positioner1d{T<:AbstractActuator} <: AbstractPositioner
+    dev::T
+end
+
+numdof(m::Positioner1d) = 1
+moveto(m::Positioner1d, x) = move(m, x[1])
+
+struct PositionerNd{T<:AbstractCartesianRobot} <: AbstractPositioner
+    dev::T
+    axes::Vector{Int}
+end
+
+numdof(m::PositionerNd) = length(m.axes)
+    
+function moveto(m::PositionerNd, x::AbstractVector{<:Real})
+
+    x1 = x[m.axes]
+
+    move(m.dev, m.axes, x1)
+end
 
 
     

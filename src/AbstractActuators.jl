@@ -248,4 +248,8 @@ Wait until all asynchronous motions of the robot is done.
 """
 waituntildone(dev::AbstractRobot) = error("Not implemented!")
 
+
+
+include("manualactuator.jl")
+
 end

@@ -8,13 +8,11 @@ An abstract interface to actuators with manual input.
 """
 abstract type AbstractManualActuator end
 
-mutable struct ManualActuator{MSG} <: AbstractActuator
+mutable struct ManualActuator{MSG} <: AbstractManualActuator
     "Name variable commanded by `ManualActuator`"
     var::String
     "Present value of the actuator"
     val::Float64
-    "Message presented to the user"
-    msg::String
     "Minimum value of `val`"
     minval::Float64
     "Maximum value of `val`"
@@ -24,6 +22,7 @@ mutable struct ManualActuator{MSG} <: AbstractActuator
     "Time in seconds to wait after user presses ENTER"
     nsec::Float64
 end
+    
 
 """
 `TermMSG`
@@ -31,40 +30,51 @@ end
 Simple interface using `stdin` to get input from user
 """
 struct TermMSG
+    msg::String
+    confirm::Bool
+    TermMSG(msg="", confirm=true) = new(msg, confirm)
 end
 
-"""
-`ManualActuator(var, val, interf, msg="", minval=Inf, maxval=Inf, nsec=0.0)`
+function (tmsg::TermMSG)(dev::T, x) where {T<:AbstractManualActuator}
+    println(tmsg.msg)
+    print("Set $(dev.var) = $x and press ENTER to continue...")
+    readline()
+    
+    if tmsg.confirm
+        print("If ready, press ENTER to start...")
+        readline()
+    end
+        
+end
 
-`ManualActuator(var, val, msg="", minval=Inf, maxval=Inf, nsec=0.0)`
+
+"""
+`ManualActuator(var, val, interf; minval=Inf, maxval=Inf, nsec=0.0)`
+
+`ManualActuator(var, val; minval=Inf, maxval=Inf, nsec=0.0)`
 
 Creates a manual actuator.
 
 """
-function ManualActuator(var, val, interf::MSG; msg="", minval=Inf,
+function ManualActuator(var, val, interf::MSG; minval=-Inf,
                         maxval=Inf, nsec=0.0) where {MSG}
-    ManualActuator{MSG}(var, val, msg, minval, maxval, interf, nsec)
+    ManualActuator{MSG}(var, val, minval, maxval, interf, nsec)
 end
 
-ManualActuator(var, val; msg="", minval=Inf, maxval=Inf, nsec=0.0) =
-    ManualActuator(var, val, TermMSG(); msg=msg,
-                   minval=minval, maxval=maxval, nsec=nsec)
+ManualActuator(var, val; minval=-Inf, maxval=Inf, nsec=0.0) =
+    ManualActuator(var, val, TermMSG(); minval=minval, maxval=maxval, nsec=nsec)
 
-function move(dev::ManualActuator{TermMSG}, x) where{MSG}
+
+function AbstractActuators.move(dev::ManualActuator{T}, x) where{T}
 
     if x < dev.minval || x > dev.maxval
         throw(DomainError(x, "Outside valid range ($(dev.minval), $(dev.maxval))"))
     end
-    
-    print("$(dev.msg) $(dev.var) = $x ")
-    readline(stdin)
-    print("Ok?")
-    readline(stdin)
+    dev.interface(dev, x)
     sleep(dev.nsec)
-
     return
     
 end
 
-position(dev::ManualActuator) = dev.val
+AbstractActuators.position(dev::ManualActuator) = dev.val
 

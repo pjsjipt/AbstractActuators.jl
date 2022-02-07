@@ -1,25 +1,9 @@
-export AbstractPositioner, setinitpos!, movenext!, moveto, movetopoint!
+export AbstractPositioner,  movenext!, moveto, movetopoint!
 export PositionerGrid, ExperimentMatrix, testpoint, setpoint!, incpoint!, pointidx
 export AbstractExperimentMatrix, CartesianExperimentMatrix, ExperimentMatrixProduct
 export TestPositioner, numaxes, numpoints
 export Positioner1d, PositionerNd
 export matrixparams
-
-"""
-`AbstractPositioner`
-
-An abstract type that creates an interface for setting up an experimental point.
-
-In this package, an experimental point is a given configuration of the experiment
-where measurements are made. 
-
-As an example, imagine we are carrying out an experiment
-where a probe makes measurements at different positions 
-specified by a [`ExperimentMatrix`](@ref) object.
-A concrete instance of an `AbstractPositioner` will handle moving
-the probe to the next position.
-"""
-abstract type AbstractPositioner end
 
 
 
@@ -104,6 +88,7 @@ Returns the names of the parameters.
 """
 matrixparams(pts::ExperimentMatrix) = pts.params
 
+numaxes(M::ExperimentMatrix) = length(M.params)
 
 """
 `numpoints(pts)`
@@ -326,36 +311,14 @@ julia> numaxes(M2)
 
 julia> numaxes(M)
 3
-
-julia> M.pts
-12×3 Matrix{Float64}:
- 1.0  100.0  1.0
- 1.0  100.0  2.0
- 1.0  100.0  3.0
- 1.0  100.0  4.0
- 2.0  200.0  1.0
- 2.0  200.0  2.0
- 2.0  200.0  3.0
- 2.0  200.0  4.0
- 3.0  300.0  1.0
- 3.0  300.0  2.0
- 3.0  300.0  3.0
- 3.0  300.0  4.0
 ```
 """
 *(m1::AbstractExperimentMatrix, m2::AbstractExperimentMatrix) =
     ExperimentMatrixProduct(m1, m2)
     
 
-numaxes(M::ExperimentMatrix) = length(M.params)
 
-"""
-`setinitpos!(move, points)`
 
-Go to initial position of the [`ExperimentMatrix`](@ref) where an experiment should start.
-"""
-setinitpos!(move::AbstractPositioner, points::AbstractExperimentMatrix) =
-    movetopoint!(move, points, 1)
 
 
 """
@@ -366,193 +329,63 @@ Move to the next point in `ExperimentMatrix`.
 If the function reached the end of the points, the function returns `false` 
 and does nothing. Othwerwise, it returns `true`.
 """
-function movenext!(move::AbstractPositioner, points::AbstractExperimentMatrix) 
+function movenext!(actuator::AbstractActuator, points::AbstractExperimentMatrix) 
     idx = pointidx(points)
     idx == numpoints(points) && return false
     p = testpoint(points, idx+1)
-    moveto(move, p)
+    moveto(actuator, p)
     incpoint!(points)
     return true
 end
+
+function movenext!(actuators::AbstractVector{<:AbstractActuator},
+                   points::ExperimentMatrixProduct)
+    
+    idx = pointidx(points)
+    ndev = size(points.ptsidx,2) # Number of devices
+
+    idx == numpoints(points) && return false # Over!
+    
+    # Only move the coordinates that need to move:
+    if idx == 0
+        for k in 1:ndev
+            moveto(actuators[k], testpoint(points.points[k], 0))
+        end
+    else
+        for k in 1:ndev
+            iold = points.ptsidx[idx,k]
+            inew = points.ptsidx[idx+1,k]
+            if iold != inew
+                moveto(actuators[k], testpoint(points.points[k], inew))
+            end
+        end
+    end
+    incpoint!(points)
+
+    return true
+end
+
 
 """
 `movetopoint!(move, points)`
 
 Move to the next point in `ExperimentMatrix`.
 """
-function movetopoint!(move::AbstractPositioner, points::ExperimentMatrix, idx=1) 
-    moveto(move, testpoint(points,idx))
+function movetopoint!(actuator::AbstractActuator, points::ExperimentMatrix, idx=1) 
+    moveto(actuator, testpoint(points,idx))
     setpoint!(points, idx)
 end
 
 
-"""
-`PositionerGrid(move1, move2)`
-
-Creates a new [`AbstractPositioner`](@ref) object from two independent ones.
-
-## Examples
-```julia-repl
-julia> move1 = TestPositioner("x", "y")
-TestPositioner(["x", "y"], [0.0, 0.0])
-
-julia> move2 = TestPositioner("z")
-TestPositioner(["z"], [0.0])
-
-julia> move = move1 * move2
-PositionerGrid{TestPositioner, TestPositioner}(TestPositioner(["x", "y"], [0.0, 0.0]), TestPositioner(["z"], [0.0]))
-
-julia> moveto(move, [1,2,3])
-Moved to (x, y) =  (1.0 , 2.0)
-Moved to (z) =  (3.0)
-
-julia> setinitpos!(move, M)
-Moved to (x, y) =  (1.0 , 100.0)
-Moved to (z) =  (1.0)
-1
-
-julia> movenext!(move, M)
-Moved to (x, y) =  (1.0 , 100.0)
-Moved to (z) =  (2.0)
-2
-
-```
-"""
-struct PositionerGrid{T1<:AbstractPositioner,T2<:AbstractPositioner} <:AbstractPositioner
-    move1::T1
-    move2::T2
-   
-    function PositionerGrid{T1,T2}(move1::T1, move2::T2) where
-        {T1<:AbstractPositioner,T2<:AbstractPositioner}
-        return new(move1, move2)
+function movetopoint!(actuators::AbstractVector{<:AbstractActuator},
+                      points::ExperimentMatrixProduct, idx=1)
+    
+    ndev = size(points.ptsidx,2) # Number of devices
+    for k in 1:ndev
+        moveto(actuators[k], testpoint(points.points[k], idx))
     end
-    
 end
 
-numaxes(move::PositionerGrid, i) = i==1 ? numaxes(move.move1) : numaxes(move.move2)
-
-numaxes(move::PositionerGrid) = numaxes(move, 1) + numaxes(move, 2)
-
-
-*(move1::T1, move2::T2) where {T1<:AbstractPositioner,T2<:AbstractPositioner} =
-    PositionerGrid{T1,T2}(move1, move2)
-
-    
-
-function setinitpos!(move::PositionerGrid, points::ExperimentMatrix)
-
-    n1 = numaxes(move.move1)
-    n2 = numaxes(move.move2)
-    
-
-    x = testpoint(points, 1)
-
-    x1 = x[1:n1]
-    x2 = x[n1+1:end]
-
-    moveto(move.move1, x1)
-    moveto(move.move2, x2)
-
-    setpoint!(points, 1)
-    
-end
-function moveto(move::PositionerGrid, x::AbstractVector{<:Real})
-    
-    x1 = Float64.(x[1:numaxes(move,1)])
-    x2 = Float64.(x[numaxes(move,1)+1:end])
-
-    moveto(move.move1, x1)
-    moveto(move.move2, x2)
-end
-
-mutable struct TestPositioner <:AbstractPositioner
-    "Variables (dof) of the test positioner"
-    params::Vector{String}
-    "Current position of the test positioner"
-    x::Vector{Float64}
-    TestPositioner(params::Vector{String}, x::Vector{Float64}) = new(params, x)
-end
-numaxes(move::TestPositioner) = length(move.params)
-
-"""
-`TestPositioner("x", "y", "z", ...)
-`TestPositioner(:x, :y, :z, ...)`
-`TestPositioner(["x", "y", "z", ...])`
-
-Creates an [`AbstractPositioner`](@ref) that can be used for testing purposes.
-The number of variables on the arguments list or the unique vector determine 
-the number of degrees of freedom of the system.
-
-##
-"""
-function TestPositioner(v...)
-    params = [string(x) for x in v]
-    n = length(params)
-    x = zeros(n)
-    return TestPositioner(params, zeros(n))
-end
-
-function TestPositioner(params::AbstractVector)
-    v = [string(v) for v in params]
-    x = zeros(length(v))
-    return TestPositioner(v, x)
-end
-
-function moveto(move::TestPositioner, x)
-    length(x) != numaxes(move) && error("Wrong number of arguments")
-        
-    move.x .= x
-    print("Moved to ")
-
-    N = length(x)
-    c = "("
-    for i in 1:N
-        print("$c$(move.params[i])")
-        c = ", "
-    end
-    print(") = ")
-    c = "("
-    for i in 1:N
-        print(" $c$(x[i])")
-        c = ", "
-    end
-    println(")")
-end
-
-
-
-"""
-`Positioner1d(dev::AbstractActuator)`
-
-Implements an `AbstractPositioner` object using the generic interface for systems
-with 1 degree of freedom.
-"""
-struct Positioner1d{T<:AbstractActuator} <: AbstractPositioner
-    dev::T
-end
-
-numaxes(m::Positioner1d) = 1
-moveto(m::Positioner1d, x) = move(m.dev, x[1])
-
-struct PositionerNd{T<:AbstractCartesianRobot} <: AbstractPositioner
-    dev::T
-    axes::Vector{Int}
-    function PositionerNd(dev::T, axes::AbstractVector{<:Integer}) where {T<:AbstractCartesianRobot}
-        return new{T}(dev, [Int(ax) for ax in axes])
-    end
-    
-end
-numaxes(m::PositionerNd) = length(m.axes)
-    
-function moveto(m::PositionerNd, x::AbstractVector{<:Real})
-
-    x1 = x[m.axes]
-
-    move(m.dev, m.axes, x1)
-end
-
-
-    
 
 
 

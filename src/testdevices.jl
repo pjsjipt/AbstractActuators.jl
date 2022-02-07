@@ -23,10 +23,14 @@ function move(dev::TestRobot1d, deg; a=false, r=false, sync=true)
     println("Movement: θ = $p")
 end
 
+
+numaxes(dev::TestRobot1d) = 1
+axesnames(dev::TestRobot1d) = ["θ"]
+
 moveto(dev::TestRobot1d, deg) = move(dev, deg[1]; a=false, r=false, sync=true)
 
 rmove(dev::TestRobot1d, deg; sync=true) = move(dev, deg, r=true, sync=sync)
-position(dev::TestRobot1d) = dev.θ - dev.θᵣ
+devposition(dev::TestRobot1d) = dev.θ - dev.θᵣ
 absposition(dev::TestRobot1d) = dev.θ
 
 setreference(dev::TestRobot1d, deg=0) = (dev.θᵣ = dev.θ - deg)
@@ -96,12 +100,12 @@ rmoveX(dev::TestRobot3d, mm) = move(dev, mm, dev.axidx["x"]; r=true)
 rmoveY(dev::TestRobot3d, mm) = move(dev, mm, dev.axidx["y"]; r=true)
 rmoveZ(dev::TestRobot3d, mm) = move(dev, mm, dev.axidx["z"]; r=true)
 
-position(dev::TestRobot3d, ax) = dev.x[dev.axidx[string(ax)]]
-position(dev::TestRobot3d, ax::Integer) = dev.x[ax]
+devposition(dev::TestRobot3d, ax) = dev.x[dev.axidx[string(ax)]]
+devposition(dev::TestRobot3d, ax::Integer) = dev.x[ax]
 
-position(dev::TestRobot3d, axes::AbstractVector) = dev.x[axes]
+devposition(dev::TestRobot3d, axes::AbstractVector) = dev.x[axes]
 
-function position(dev::TestRobot3d)
+function devposition(dev::TestRobot3d)
     pos = Dict{String,Float64}()
 
     for i in 1:numaxes(dev)
@@ -110,9 +114,9 @@ function position(dev::TestRobot3d)
     return pos
 end
 
-positionX(dev::TestRobot3d) = position(dev, "x")
-positionY(dev::TestRobot3d) = position(dev, "y")
-positionZ(dev::TestRobot3d) = position(dev, "z")
+positionX(dev::TestRobot3d) = devposition(dev, "x")
+positionY(dev::TestRobot3d) = devposition(dev, "y")
+positionZ(dev::TestRobot3d) = devposition(dev, "z")
 
 setreference(dev::TestRobot3d, ax::Integer, mm=0) = dev.x[ax] = mm
 setreference(dev::TestRobot3d, ax, mm=0) = dev.x[dev.axidx[string(ax)]] = mm

@@ -5,9 +5,10 @@ export AbstractActuator, AbstractRobot, AbstractCartesianRobot, numaxes
 export moveto
 export move, moveX, moveY, moveZ
 export rmove, rmoveX, rmoveY, rmoveZ
+export axesnames
 
 export absposition, abspositionX, abspositionY, abspositionZ
-export position, positionX, positionY, positionZ
+export devposition, positionX, positionY, positionZ
 
 export setreference, setreferenceX, setreferenceY, setreferenceZ
 export setabsreference, setabsreferenceX, setabsreferenceY, setabsreferenceZ

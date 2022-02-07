@@ -101,7 +101,7 @@ end
 
 Returns the names of the parameters.
 """
-matrixparams(pts::AbstractTestMatrix) = pts.params
+matrixparams(pts::TestMatrix) = pts.params
 
 
 """

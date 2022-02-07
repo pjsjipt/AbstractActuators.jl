@@ -23,6 +23,8 @@ function move(dev::TestRobot1d, deg; a=false, r=false, sync=true)
     println("Movement: θ = $p")
 end
 
+moveto(dev::TestRobot1d, deg) = move(dev, deg[1]; a=false, r=false, sync=true)
+
 rmove(dev::TestRobot1d, deg; sync=true) = move(dev, deg, r=true, sync=sync)
 position(dev::TestRobot1d) = dev.θ - dev.θᵣ
 absposition(dev::TestRobot1d) = dev.θ
@@ -72,7 +74,7 @@ end
 
 move(dev::TestRobot3d, ax, mm; r=false) =
     move(dev, dev.axidx[string(ax)], mm; r=r)
-    
+
 
 function move(dev::TestRobot3d, axes::AbstractVector,
                                 x::AbstractVector; r=false)
@@ -83,6 +85,8 @@ function move(dev::TestRobot3d, axes::AbstractVector,
     end
     return
 end
+
+moveto(dev::TestRobot3d, x::AbstractVector) = move(dev, dev.axes, x, r=false)
 
 moveX(dev::TestRobot3d, mm) = move(dev, mm, dev.axidx["x"]; r=false)
 moveY(dev::TestRobot3d, mm) = move(dev, mm, dev.axidx["y"]; r=false)

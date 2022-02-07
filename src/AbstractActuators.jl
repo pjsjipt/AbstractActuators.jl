@@ -2,6 +2,7 @@ module AbstractActuators
 
 
 export AbstractActuator, AbstractRobot, AbstractCartesianRobot, numaxes 
+export moveto
 export move, moveX, moveY, moveZ
 export rmove, rmoveX, rmoveY, rmoveZ
 

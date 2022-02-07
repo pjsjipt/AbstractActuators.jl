@@ -17,6 +17,13 @@ Move a Robot.
 move(dev::AbstractRobot) = error("Not implemented!")
 
 """
+`moveto(dev, x)`
+
+Move a Robot.
+"""
+moveto(dev::AbstractRobot, x::AbstractVector) = error("Not implemented!")
+
+"""
 `moveX(dev)`
 
 Move a Robot along x axis.

@@ -1,9 +1,10 @@
 export AbstractPositioner, setinitpos!, movenext!, moveto, movetopoint!
 export PositionerGrid, ExperimentMatrix, testpoint, setpoint!, incpoint!, pointidx
-export CartesianExperimentMatrix, ExperimentMatrixProduct
+export AbstractExperimentMatrix, CartesianExperimentMatrix, ExperimentMatrixProduct
 export TestPositioner, numaxes, numpoints
 export Positioner1d, PositionerNd
 export matrixparams
+
 """
 `AbstractPositioner`
 
@@ -242,14 +243,17 @@ mutable struct ExperimentMatrixProduct <: AbstractExperimentMatrix
     ExperimentMatrixProduct(idx::Int, points::Vector{AbstractExperimentMatrix}, ptsidx::Matrix{Int}) = new(idx, points, ptsidx)
 end
 
+
+
 """
 `ExperimentMatrixProduct(pts...)`
 
 
 Cartesian produc between different AbstractExperimentMatrix objects.
 """
-function ExperimentMatrixProduct(pts...)
-    points = [p for p in pts]
+function ExperimentMatrixProduct(points::AbstractVector{<:AbstractExperimentMatrix})
+    points = AbstractExperimentMatrix[p for p in points]
+    
     n = numpoints.(points)
     nmats = length(points)
     ii = Vector{Int}[]
@@ -261,6 +265,12 @@ function ExperimentMatrixProduct(pts...)
 
     return ExperimentMatrixProduct(0, points, ptsidx)
 end
+function ExperimentMatrixProduct(pts...)
+    points = AbstractExperimentMatrix[p for p in pts]
+    return ExperimentMatrixProduct(points)
+end
+
+    
 
 numpoints(pts::ExperimentMatrixProduct) = size(pts.ptsidx,1)
 numaxes(pts::ExperimentMatrixProduct) = sum(numaxes.(pts.points))
@@ -333,38 +343,9 @@ julia> M.pts
  3.0  300.0  4.0
 ```
 """
-function *(m1::ExperimentMatrix, m2::ExperimentMatrix)
-
-    # Variables must be different in each ExperimentMatrix
-    if length(intersect(m1.params, m2.params)) != 0
-        throw(ArgumentError("No repeated variables in ExperimentMatrix allowed"))
-    end
-
-    params = vcat(m1.params, m2.params)
+*(m1::AbstractExperimentMatrix, m2::AbstractExperimentMatrix) =
+    ExperimentMatrixProduct(m1, m2)
     
-    nv1 = length(m1.params)
-    nv2 = length(m2.params)
-
-    n1 = size(m1.pts,1)
-    n2 = size(m2.pts,1)
-
-    
-    n = n1 * n2
-    nv = nv1 + nv2
-    pts = zeros(Float64, n, nv)
-
-    row = 1
-    for i in 1:n1
-        pi = m1.pts[i,:]
-        for k in 1:n2
-            pk = m2.pts[k,:]
-            pts[row, :] = vcat(pi, pk)
-            row += 1
-        end
-    end
-    return ExperimentMatrix(params, pts)
-
-end
 
 numaxes(M::ExperimentMatrix) = length(M.params)
 
@@ -403,14 +384,6 @@ function movetopoint!(move::AbstractPositioner, points::ExperimentMatrix, idx=1)
     moveto(move, testpoint(points,idx))
     setpoint!(points, idx)
 end
-
-"""
-`moveto(move, x)`
-
-Move to an arbitrary point. The point is specified by vector `x`. 
-
-"""
-function moveto end
 
 
 """

@@ -17,11 +17,13 @@ Move a Robot.
 move(dev::AbstractRobot) = error("Not implemented!")
 
 """
-`moveto(dev, x)`
+`moveto(move, x)`
 
-Move a Robot.
+Move to an arbitrary point. The point is specified by vector `x`. 
+
 """
-moveto(dev::AbstractRobot, x::AbstractVector) = error("Not implemented!")
+function moveto end
+
 
 """
 `moveX(dev)`

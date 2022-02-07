@@ -1,6 +1,6 @@
 export AbstractPositioner, setinitpos!, movenext!, moveto, movetopoint!
-export PositionerGrid, TestMatrix, testpoint, setpoint!, incpoint!, pointidx
-export CartesianTestMatrix, TestMatrixProduct
+export PositionerGrid, ExperimentMatrix, testpoint, setpoint!, incpoint!, pointidx
+export CartesianExperimentMatrix, ExperimentMatrixProduct
 export TestPositioner, numaxes, numpoints
 export Positioner1d, PositionerNd
 export matrixparams
@@ -14,7 +14,7 @@ where measurements are made.
 
 As an example, imagine we are carrying out an experiment
 where a probe makes measurements at different positions 
-specified by a [`TestMatrix`](@ref) object.
+specified by a [`ExperimentMatrix`](@ref) object.
 A concrete instance of an `AbstractPositioner` will handle moving
 the probe to the next position.
 """
@@ -22,10 +22,10 @@ abstract type AbstractPositioner end
 
 
 
-abstract type AbstractTestMatrix end
+abstract type AbstractExperimentMatrix end
 
 
-mutable struct TestMatrix <: AbstractTestMatrix
+mutable struct ExperimentMatrix <: AbstractExperimentMatrix
     "Index of current point"
     idx::Int
     "Name of parameters that characterize the point"
@@ -36,8 +36,8 @@ end
 
 
 """
-`TestMatrix(params, pts)`
-`TestMatrix(;kw...)`
+`ExperimentMatrix(params, pts)`
+`ExperimentMatrix(;kw...)`
 
 Defines a sequence of predefined points that characterize an experiment.
 
@@ -51,7 +51,7 @@ parameter (degree of freedom) of the system. Each row characterizes a specific p
  * `kw...` Keyword arguments where the names of the keywords correspond to the variables and the values to the possible positions. The length of each keyword argument should be the same or 1. If its 1, it will be repeated.
 
 """
-function TestMatrix(params, pts::AbstractMatrix{Float64})
+function ExperimentMatrix(params, pts::AbstractMatrix{Float64})
     
     npars = size(pts, 2)
     nvals = size(pts, 1)
@@ -65,11 +65,11 @@ function TestMatrix(params, pts::AbstractMatrix{Float64})
         end
     end
     params1 = [string(v) for v in params]
-    return TestMatrix(0, params1, testpts)
+    return ExperimentMatrix(0, params1, testpts)
 
 end
 
-function TestMatrix(;kw...) 
+function ExperimentMatrix(;kw...) 
 
     params = [string(k) for k in keys(kw)]
     nvals = maximum(length(v) for (k,v) in kw)
@@ -91,7 +91,7 @@ function TestMatrix(;kw...)
         end
         ivar += 1
     end
-    return TestMatrix(0, params, testpts)
+    return ExperimentMatrix(0, params, testpts)
     
 end
 
@@ -101,7 +101,7 @@ end
 
 Returns the names of the parameters.
 """
-matrixparams(pts::TestMatrix) = pts.params
+matrixparams(pts::ExperimentMatrix) = pts.params
 
 
 """
@@ -109,39 +109,39 @@ matrixparams(pts::TestMatrix) = pts.params
 
 Returns the number of points in a test matrix.
 """
-numpoints(pts::TestMatrix) = size(pts.pts,1)
+numpoints(pts::ExperimentMatrix) = size(pts.pts,1)
 
 """
 `testpoint(pts, i)`
 
 Return a vector containing the coordinates of the i-th test point.
 """
-testpoint(pts::TestMatrix, i) = pts.pts[i,:]
+testpoint(pts::ExperimentMatrix, i) = pts.pts[i,:]
 
 """
 `incpoint!(pts)`
 
 Set the index of the current test point to 1
 """
-incpoint!(pts::AbstractTestMatrix) = pts.idx += 1
+incpoint!(pts::AbstractExperimentMatrix) = pts.idx += 1
 
 """
 `setpoint!(pts, idx)`
 
 Set the index of the current test point to `idx`
 """
-setpoint!(pts::AbstractTestMatrix, idx=1) = pts.idx = idx
+setpoint!(pts::AbstractExperimentMatrix, idx=1) = pts.idx = idx
 
 """
 `pointidx(move)`
 
 Return the index of the current position during the experiment.
 """
-pointidx(pts::AbstractTestMatrix) = pts.idx
+pointidx(pts::AbstractExperimentMatrix) = pts.idx
 
 
 
-mutable struct CartesianTestMatrix <: AbstractTestMatrix
+mutable struct CartesianExperimentMatrix <: AbstractExperimentMatrix
     idx::Int
     params::Vector{String}
     axes::Vector{Vector{Float64}}
@@ -189,7 +189,7 @@ end
 cartesianprod(x1...) = cartesianprod([collect(y) for y in x1])
 
 """
-`CartesianTestMatrix(;kw...)`
+`CartesianExperimentMatrix(;kw...)`
 
 Creates a test matrix that is a cartesian product  of independent parameters.
 This is useful if the test should be executed on a regular grid, x, y for example.
@@ -218,7 +218,7 @@ The points of the test matrix are
 
 
 """
-function CartesianTestMatrix(;kw...)
+function CartesianExperimentMatrix(;kw...)
     params = string.(collect(keys(kw)))
     axes = Vector{Float64}[]
     npars = length(params)
@@ -226,29 +226,29 @@ function CartesianTestMatrix(;kw...)
         push!(axes, [Float64(x) for x in v])
     end
     pts = cartesianprod(axes)
-    return CartesianTestMatrix(0, params, axes, pts)
+    return CartesianExperimentMatrix(0, params, axes, pts)
 end
 
-numpoints(pts::CartesianTestMatrix) = size(pts.pts, 1)
-numaxes(pts::CartesianTestMatrix) = length(pts.params)
-testpoint(pts::CartesianTestMatrix, i) = pts.pts[i,:]
+numpoints(pts::CartesianExperimentMatrix) = size(pts.pts, 1)
+numaxes(pts::CartesianExperimentMatrix) = length(pts.params)
+testpoint(pts::CartesianExperimentMatrix, i) = pts.pts[i,:]
 
 
     
-mutable struct TestMatrixProduct <: AbstractTestMatrix
+mutable struct ExperimentMatrixProduct <: AbstractExperimentMatrix
     idx::Int
-    points::Vector{AbstractTestMatrix}
+    points::Vector{AbstractExperimentMatrix}
     ptsidx::Matrix{Int}
-    TestMatrixProduct(idx::Int, points::Vector{AbstractTestMatrix}, ptsidx::Matrix{Int}) = new(idx, points, ptsidx)
+    ExperimentMatrixProduct(idx::Int, points::Vector{AbstractExperimentMatrix}, ptsidx::Matrix{Int}) = new(idx, points, ptsidx)
 end
 
 """
-`TestMatrixProduct(pts...)`
+`ExperimentMatrixProduct(pts...)`
 
 
-Cartesian produc between different AbstractTestMatrix objects.
+Cartesian produc between different AbstractExperimentMatrix objects.
 """
-function TestMatrixProduct(pts...)
+function ExperimentMatrixProduct(pts...)
     points = [p for p in pts]
     n = numpoints.(points)
     nmats = length(points)
@@ -259,12 +259,12 @@ function TestMatrixProduct(pts...)
     end
     ptsidx = cartesianprod(ii)
 
-    return TestMatrixProduct(0, points, ptsidx)
+    return ExperimentMatrixProduct(0, points, ptsidx)
 end
 
-numpoints(pts::TestMatrixProduct) = size(pts.ptsidx,1)
-numaxes(pts::TestMatrixProduct) = sum(numaxes.(pts.points))
-function matrixparams(pts::TestMatrixProduct)
+numpoints(pts::ExperimentMatrixProduct) = size(pts.ptsidx,1)
+numaxes(pts::ExperimentMatrixProduct) = sum(numaxes.(pts.points))
+function matrixparams(pts::ExperimentMatrixProduct)
     params = String[]
 
     for p in pts.points
@@ -273,7 +273,7 @@ function matrixparams(pts::TestMatrixProduct)
     return params
 end
 
-function testpoint(pts::TestMatrixProduct, i)
+function testpoint(pts::ExperimentMatrixProduct, i)
     x = Float64[]
 
     for (k,p) in enumerate(pts.points)
@@ -299,14 +299,14 @@ multiplication runs faster.
 ## Examples
 
 ```julia-repl
-julia> M1 = TestMatrix(;x=1:3, y=100:100:300)
-TestMatrix(0, ["x", "y"], [1.0 100.0; 2.0 200.0; 3.0 300.0])
+julia> M1 = ExperimentMatrix(;x=1:3, y=100:100:300)
+ExperimentMatrix(0, ["x", "y"], [1.0 100.0; 2.0 200.0; 3.0 300.0])
 
-julia> M2 = TestMatrix(z=1:4)
-TestMatrix(0, ["z"], [1.0; 2.0; 3.0; 4.0;;])
+julia> M2 = ExperimentMatrix(z=1:4)
+ExperimentMatrix(0, ["z"], [1.0; 2.0; 3.0; 4.0;;])
 
 julia> M = M1*M2
-TestMatrix(0, ["x", "y", "z"], [1.0 100.0 1.0; 1.0 100.0 2.0; … ; 3.0 300.0 3.0; 3.0 300.0 4.0])
+ExperimentMatrix(0, ["x", "y", "z"], [1.0 100.0 1.0; 1.0 100.0 2.0; … ; 3.0 300.0 3.0; 3.0 300.0 4.0])
 
 julia> numaxes(M1)
 2
@@ -333,11 +333,11 @@ julia> M.pts
  3.0  300.0  4.0
 ```
 """
-function *(m1::TestMatrix, m2::TestMatrix)
+function *(m1::ExperimentMatrix, m2::ExperimentMatrix)
 
-    # Variables must be different in each TestMatrix
+    # Variables must be different in each ExperimentMatrix
     if length(intersect(m1.params, m2.params)) != 0
-        throw(ArgumentError("No repeated variables in TestMatrix allowed"))
+        throw(ArgumentError("No repeated variables in ExperimentMatrix allowed"))
     end
 
     params = vcat(m1.params, m2.params)
@@ -362,30 +362,30 @@ function *(m1::TestMatrix, m2::TestMatrix)
             row += 1
         end
     end
-    return TestMatrix(params, pts)
+    return ExperimentMatrix(params, pts)
 
 end
 
-numaxes(M::TestMatrix) = length(M.params)
+numaxes(M::ExperimentMatrix) = length(M.params)
 
 """
 `setinitpos!(move, points)`
 
-Go to initial position of the [`TestMatrix`](@ref) where an experiment should start.
+Go to initial position of the [`ExperimentMatrix`](@ref) where an experiment should start.
 """
-setinitpos!(move::AbstractPositioner, points::AbstractTestMatrix) =
+setinitpos!(move::AbstractPositioner, points::AbstractExperimentMatrix) =
     movetopoint!(move, points, 1)
 
 
 """
 `movenext!(move, points)`
 
-Move to the next point in `TestMatrix`.
+Move to the next point in `ExperimentMatrix`.
 
 If the function reached the end of the points, the function returns `false` 
 and does nothing. Othwerwise, it returns `true`.
 """
-function movenext!(move::AbstractPositioner, points::AbstractTestMatrix) 
+function movenext!(move::AbstractPositioner, points::AbstractExperimentMatrix) 
     idx = pointidx(points)
     idx == numpoints(points) && return false
     p = testpoint(points, idx+1)
@@ -397,9 +397,9 @@ end
 """
 `movetopoint!(move, points)`
 
-Move to the next point in `TestMatrix`.
+Move to the next point in `ExperimentMatrix`.
 """
-function movetopoint!(move::AbstractPositioner, points::TestMatrix, idx=1) 
+function movetopoint!(move::AbstractPositioner, points::ExperimentMatrix, idx=1) 
     moveto(move, testpoint(points,idx))
     setpoint!(points, idx)
 end
@@ -466,7 +466,7 @@ numaxes(move::PositionerGrid) = numaxes(move, 1) + numaxes(move, 2)
 
     
 
-function setinitpos!(move::PositionerGrid, points::TestMatrix)
+function setinitpos!(move::PositionerGrid, points::ExperimentMatrix)
 
     n1 = numaxes(move.move1)
     n2 = numaxes(move.move2)

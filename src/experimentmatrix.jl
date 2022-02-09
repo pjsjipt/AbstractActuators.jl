@@ -2,7 +2,7 @@ export AbstractPositioner,  movenext!, moveto, movetopoint!
 export PositionerGrid, ExperimentMatrix, testpoint, setpoint!, restartpoints!
 export incpoint!, pointidx
 export AbstractExperimentMatrix, CartesianExperimentMatrix, ExperimentMatrixProduct
-export TestPositioner, numaxes, numparams, numpoints
+export TestPositioner, numaxes, numparams, numpoints, experimentpoints
 export Positioner1d, PositionerNd
 export matrixparams
 
@@ -129,7 +129,7 @@ Return the index of the current position during the experiment.
 """
 pointidx(pts::AbstractExperimentMatrix) = pts.idx
 
-
+experimentpoints(pts::ExperimentMatrix) = pts.pts
 
 mutable struct CartesianExperimentMatrix <: AbstractExperimentMatrix
     idx::Int
@@ -222,6 +222,7 @@ end
 numpoints(pts::CartesianExperimentMatrix) = size(pts.pts, 1)
 numparams(pts::CartesianExperimentMatrix) = length(pts.params)
 testpoint(pts::CartesianExperimentMatrix, i) = pts.pts[i,:]
+experimentpoints(pts::CartesianExperimentMatrix) = pts.pts
 
 
     
@@ -277,7 +278,19 @@ function testpoint(pts::ExperimentMatrixProduct, i)
     
 end
 
-                
+function experimentpoints(pts::ExperimentMatrixProduct)
+    npts = numpoints(pts)
+
+    nparams = numparams(pts)
+    points = zeros(npts, nparams)
+
+    for i in 1:npts
+        points[i,:] .= testpoint(pts, i)
+    end
+    return points
+end
+
+    
 import Base.*
 
 """

@@ -1,6 +1,6 @@
 module AbstractActuators
 
-import AbstractDAQs
+using AbstractDAQs
 
 
 export devname
@@ -34,5 +34,5 @@ include("move_interface.jl")
 include("experimentmatrix.jl")
 include("manualactuator.jl")
 include("testdevices.jl")
-
+include("hdf5io.jl")
 end

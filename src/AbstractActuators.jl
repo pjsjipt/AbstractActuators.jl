@@ -1,6 +1,9 @@
 module AbstractActuators
 
+import AbstractDAQs
 
+
+export devname
 export AbstractActuator, AbstractRobot, AbstractCartesianRobot, numaxes 
 export moveto
 export move, moveX, moveY, moveZ
@@ -16,11 +19,11 @@ export setabsreference, setabsreferenceX, setabsreferenceY, setabsreferenceZ
 export home, homeX, homeY, homeZ
 export stopmotion, waituntildone
 
-export TestRobot1d, TestRobot3d
+export TestRobot1d, TestRobot
 
 
 
-abstract type AbstractActuator  end
+abstract type AbstractActuator <: AbstractDAQs.AbstractDevice end
 abstract type AbstractRobot <: AbstractActuator end
 
 abstract type AbstractCartesianRobot <: AbstractRobot end

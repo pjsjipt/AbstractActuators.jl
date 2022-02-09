@@ -6,7 +6,7 @@ export ManualActuator
 
 An abstract interface to actuators with manual input.
 """
-abstract type AbstractManualActuator end
+abstract type AbstractManualActuator <: AbstractActuator end
 
 mutable struct ManualActuator{MSG} <: AbstractManualActuator
     "Name variable commanded by `ManualActuator`"
@@ -64,8 +64,10 @@ end
 ManualActuator(var, val; minval=-Inf, maxval=Inf, nsec=0.0) =
     ManualActuator(var, val, TermMSG(); minval=minval, maxval=maxval, nsec=nsec)
 
+numaxes(dev::ManualActuator) = 1
+axesnames(dev::ManualActuator) = [dev.var]
 
-function AbstractActuators.move(dev::ManualActuator{T}, x) where{T}
+function move(dev::ManualActuator{T}, x) where{T}
 
     if x < dev.minval || x > dev.maxval
         throw(DomainError(x, "Outside valid range ($(dev.minval), $(dev.maxval))"))
@@ -76,5 +78,6 @@ function AbstractActuators.move(dev::ManualActuator{T}, x) where{T}
     
 end
 
-AbstractActuators.position(dev::ManualActuator) = dev.val
+moveto(dev::ManualActuator{T}, x) where{T} = move(dev, x[1])
+devposition(dev::ManualActuator) = dev.val
 

@@ -6,7 +6,7 @@
 Return the number of degrees of freedom of the actuator.
 """
 numaxes(dev::AbstractActuator) = error("Not implemented!")
-numaxes(::Type{<:AbstractRobot}) = error("Not implemented!")
+axesnames(dev::AbstractActuator) = error("Not implemented")
 
 
 """

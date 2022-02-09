@@ -1,40 +1,42 @@
 
 
 mutable struct TestRobot1d <: AbstractRobot
-    θ::Float64
-    θᵣ::Float64
+    devname::String
+    x::Float64
+    xᵣ::Float64
+    axis::String
     Δt::Float64
 end
 
-TestRobot1d(;dt=1.0) = TestRobot1d(0.0, 0.0, dt)
+TestRobot1d(devname, axis="θ";dt=0.0) = TestRobot1d(devname, 0.0, 0.0, axis, dt)
 
-function move(dev::TestRobot1d, deg; a=false, r=false, sync=true)
+function move(dev::TestRobot1d, x; a=false, r=false, sync=true)
     if r
-        dev.θ += deg
+        dev.x += x
     elseif a
-        dev.θ = deg
+        dev.x = x
     else
-        dev.θ = deg + dev.θᵣ
+        dev.x = x + dev.xᵣ
     end
 
     sync && sleep(dev.Δt)
 
-    p = dev.θ - dev.θᵣ
+    p = dev.x - dev.xᵣ
     println("Movement: θ = $p")
 end
 
 
 numaxes(dev::TestRobot1d) = 1
-axesnames(dev::TestRobot1d) = ["θ"]
+axesnames(dev::TestRobot1d) = [dev.axis]
 
-moveto(dev::TestRobot1d, deg) = move(dev, deg[1]; a=false, r=false, sync=true)
+moveto(dev::TestRobot1d, x) = move(dev, x[1]; a=false, r=false, sync=true)
 
-rmove(dev::TestRobot1d, deg; sync=true) = move(dev, deg, r=true, sync=sync)
-devposition(dev::TestRobot1d) = dev.θ - dev.θᵣ
-absposition(dev::TestRobot1d) = dev.θ
+rmove(dev::TestRobot1d, x; sync=true) = move(dev, x, r=true, sync=sync)
+devposition(dev::TestRobot1d) = dev.x - dev.xᵣ
+absposition(dev::TestRobot1d) = dev.x
 
-setreference(dev::TestRobot1d, deg=0) = (dev.θᵣ = dev.θ - deg)
-setabsreference(dev::TestRobot1d) = (dev.θᵣ = 0)
+setreference(dev::TestRobot1d, x=0) = (dev.xᵣ = dev.x - x)
+setabsreference(dev::TestRobot1d) = (dev.xᵣ = 0)
 
 
 waituntildone(dev::TestRobot1d) = sleep(dev.Δt)
@@ -45,7 +47,8 @@ stopmotion(dev::TestRobot1d) = sleep(dev.Δt/5)
 
 
 
-mutable struct TestRobot3d <: AbstractCartesianRobot
+mutable struct TestRobot <: AbstractCartesianRobot
+    devname::String
     n::Int
     x::Vector{Float64}
     xr::Vector{Float64}
@@ -54,19 +57,21 @@ mutable struct TestRobot3d <: AbstractCartesianRobot
     Δt::Float64
 end
 
-function TestRobot3d(n=3; axes=["x", "y", "z", "w"], dt=1.0)
+function TestRobot(devname, axes=["x", "y", "z"]; dt=0.0)
+    n = length(axes)
     axidx = Dict{String,Int}()
     axes = axes[1:n]
     for (i, ax) in enumerate(axes)
         axidx[ax] = i
     end
     
-    TestRobot3d(n, zeros(n), zeros(n), axes, axidx, dt)
+    TestRobot(devname, n, zeros(n), zeros(n), axes, axidx, dt)
 end
 
-numaxes(dev::TestRobot3d) = dev.n
+numaxes(dev::TestRobot) = dev.n
+axesnames(dev::TestRobot) = dev.axes
 
-function move(dev::TestRobot3d, ax::Integer, mm; r=false)
+function move(dev::TestRobot, ax::Integer, mm; r=false)
     if r
         dev.x[ax] += mm
     else
@@ -76,11 +81,11 @@ function move(dev::TestRobot3d, ax::Integer, mm; r=false)
     println("Position: $ax -> $(dev.axes[ax]) = $(dev.x[ax])")
 end
 
-move(dev::TestRobot3d, ax, mm; r=false) =
+move(dev::TestRobot, ax, mm; r=false) =
     move(dev, dev.axidx[string(ax)], mm; r=r)
 
 
-function move(dev::TestRobot3d, axes::AbstractVector,
+function move(dev::TestRobot, axes::AbstractVector,
                                 x::AbstractVector; r=false)
     ndof = length(axes)
 
@@ -90,22 +95,22 @@ function move(dev::TestRobot3d, axes::AbstractVector,
     return
 end
 
-moveto(dev::TestRobot3d, x::AbstractVector) = move(dev, dev.axes, x, r=false)
+moveto(dev::TestRobot, x::AbstractVector) = move(dev, dev.axes, x, r=false)
 
-moveX(dev::TestRobot3d, mm) = move(dev, mm, dev.axidx["x"]; r=false)
-moveY(dev::TestRobot3d, mm) = move(dev, mm, dev.axidx["y"]; r=false)
-moveZ(dev::TestRobot3d, mm) = move(dev, mm, dev.axidx["z"]; r=false)
+moveX(dev::TestRobot, mm) = move(dev, mm, dev.axidx["x"]; r=false)
+moveY(dev::TestRobot, mm) = move(dev, mm, dev.axidx["y"]; r=false)
+moveZ(dev::TestRobot, mm) = move(dev, mm, dev.axidx["z"]; r=false)
 
-rmoveX(dev::TestRobot3d, mm) = move(dev, mm, dev.axidx["x"]; r=true)
-rmoveY(dev::TestRobot3d, mm) = move(dev, mm, dev.axidx["y"]; r=true)
-rmoveZ(dev::TestRobot3d, mm) = move(dev, mm, dev.axidx["z"]; r=true)
+rmoveX(dev::TestRobot, mm) = move(dev, mm, dev.axidx["x"]; r=true)
+rmoveY(dev::TestRobot, mm) = move(dev, mm, dev.axidx["y"]; r=true)
+rmoveZ(dev::TestRobot, mm) = move(dev, mm, dev.axidx["z"]; r=true)
 
-devposition(dev::TestRobot3d, ax) = dev.x[dev.axidx[string(ax)]]
-devposition(dev::TestRobot3d, ax::Integer) = dev.x[ax]
+devposition(dev::TestRobot, ax) = dev.x[dev.axidx[string(ax)]]
+devposition(dev::TestRobot, ax::Integer) = dev.x[ax]
 
-devposition(dev::TestRobot3d, axes::AbstractVector) = dev.x[axes]
+devposition(dev::TestRobot, axes::AbstractVector) = dev.x[axes]
 
-function devposition(dev::TestRobot3d)
+function devposition(dev::TestRobot)
     pos = Dict{String,Float64}()
 
     for i in 1:numaxes(dev)
@@ -114,14 +119,14 @@ function devposition(dev::TestRobot3d)
     return pos
 end
 
-positionX(dev::TestRobot3d) = devposition(dev, "x")
-positionY(dev::TestRobot3d) = devposition(dev, "y")
-positionZ(dev::TestRobot3d) = devposition(dev, "z")
+positionX(dev::TestRobot) = devposition(dev, "x")
+positionY(dev::TestRobot) = devposition(dev, "y")
+positionZ(dev::TestRobot) = devposition(dev, "z")
 
-setreference(dev::TestRobot3d, ax::Integer, mm=0) = dev.x[ax] = mm
-setreference(dev::TestRobot3d, ax, mm=0) = dev.x[dev.axidx[string(ax)]] = mm
+setreference(dev::TestRobot, ax::Integer, mm=0) = dev.x[ax] = mm
+setreference(dev::TestRobot, ax, mm=0) = dev.x[dev.axidx[string(ax)]] = mm
 
-function setreference(dev::TestRobot3d, ax::AbstractVector, mm=0)
+function setreference(dev::TestRobot, ax::AbstractVector, mm=0)
     nax = length(ax)
     if length(mm) == 1
         mm = fill(mm[1], nax)
@@ -133,8 +138,8 @@ function setreference(dev::TestRobot3d, ax::AbstractVector, mm=0)
     
 end
 
-setreferenceX(dev::TestRobot3d, mm=0) = dev.x[dev.axidx["x"]] = mm
-setreferenceY(dev::TestRobot3d, mm=0) = dev.x[dev.axidx["y"]] = mm
-setreferenceZ(dev::TestRobot3d, mm=0) = dev.x[dev.axidx["z"]] = mm
+setreferenceX(dev::TestRobot, mm=0) = dev.x[dev.axidx["x"]] = mm
+setreferenceY(dev::TestRobot, mm=0) = dev.x[dev.axidx["y"]] = mm
+setreferenceZ(dev::TestRobot, mm=0) = dev.x[dev.axidx["z"]] = mm
 
 

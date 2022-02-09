@@ -1,7 +1,8 @@
 export AbstractPositioner,  movenext!, moveto, movetopoint!
-export PositionerGrid, ExperimentMatrix, testpoint, setpoint!, incpoint!, pointidx
+export PositionerGrid, ExperimentMatrix, testpoint, setpoint!, restartpoints!
+export incpoint!, pointidx
 export AbstractExperimentMatrix, CartesianExperimentMatrix, ExperimentMatrixProduct
-export TestPositioner, numaxes, numpoints
+export TestPositioner, numaxes, numparams, numpoints
 export Positioner1d, PositionerNd
 export matrixparams
 
@@ -86,9 +87,9 @@ end
 
 Returns the names of the parameters.
 """
-matrixparams(pts::ExperimentMatrix) = pts.params
+matrixparams(pts::AbstractExperimentMatrix) = pts.params
 
-numaxes(M::ExperimentMatrix) = length(M.params)
+numparams(M::ExperimentMatrix) = length(M.params)
 
 """
 `numpoints(pts)`
@@ -114,9 +115,12 @@ incpoint!(pts::AbstractExperimentMatrix) = pts.idx += 1
 """
 `setpoint!(pts, idx)`
 
-Set the index of the current test point to `idx`
+Set the index of the next experiment point to `idx`.
+Remember that the next point is `idx+1`!
 """
-setpoint!(pts::AbstractExperimentMatrix, idx=1) = pts.idx = idx
+setpoint!(pts::AbstractExperimentMatrix, idx=1) = pts.idx = idx-1
+
+restartpoints!(pts::AbstractExperimentMatrix) = pts.idx = 0
 
 """
 `pointidx(move)`
@@ -216,7 +220,7 @@ function CartesianExperimentMatrix(;kw...)
 end
 
 numpoints(pts::CartesianExperimentMatrix) = size(pts.pts, 1)
-numaxes(pts::CartesianExperimentMatrix) = length(pts.params)
+numparams(pts::CartesianExperimentMatrix) = length(pts.params)
 testpoint(pts::CartesianExperimentMatrix, i) = pts.pts[i,:]
 
 
@@ -258,15 +262,9 @@ end
     
 
 numpoints(pts::ExperimentMatrixProduct) = size(pts.ptsidx,1)
-numaxes(pts::ExperimentMatrixProduct) = sum(numaxes.(pts.points))
-function matrixparams(pts::ExperimentMatrixProduct)
-    params = String[]
+numparams(pts::ExperimentMatrixProduct) = sum(numparams.(pts.points))
+matrixparams(pts::ExperimentMatrixProduct) = vcat([matrixparams(p) for p in pts.points]...)
 
-    for p in pts.points
-        append!(params, matrixparams(p))
-    end
-    return params
-end
 
 function testpoint(pts::ExperimentMatrixProduct, i)
     x = Float64[]
@@ -349,7 +347,7 @@ function movenext!(actuators::AbstractVector{<:AbstractActuator},
     # Only move the coordinates that need to move:
     if idx == 0
         for k in 1:ndev
-            moveto(actuators[k], testpoint(points.points[k], 0))
+            moveto(actuators[k], testpoint(points.points[k], 1))
         end
     else
         for k in 1:ndev

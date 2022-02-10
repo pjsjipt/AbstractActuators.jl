@@ -9,8 +9,9 @@ An abstract interface to actuators with manual input.
 abstract type AbstractManualActuator <: AbstractActuator end
 
 mutable struct ManualActuator{MSG} <: AbstractManualActuator
-    "Name variable commanded by `ManualActuator`"
     devname::String
+    "Name variable commanded by `ManualActuator`"
+    var::String
     "Present value of the actuator"
     val::Float64
     "Minimum value of `val`"
@@ -49,23 +50,23 @@ end
 
 
 """
-`ManualActuator(devname, val, interf; minval=Inf, maxval=Inf, nsec=0.0)`
+`ManualActuator(devname, var, val, interf; minval=Inf, maxval=Inf, nsec=0.0)`
 
-`ManualActuator(devname, val; minval=Inf, maxval=Inf, nsec=0.0)`
+`ManualActuator(devname, var, val; minval=Inf, maxval=Inf, nsec=0.0)`
 
 Creates a manual actuator.
 
 """
-function ManualActuator(devname, val, interf::MSG; minval=-Inf,
+function ManualActuator(devname, var, val, interf::MSG; minval=-Inf,
                         maxval=Inf, nsec=0.0) where {MSG}
-    ManualActuator{MSG}(devname, val, minval, maxval, interf, nsec)
+    ManualActuator{MSG}(devname, var, val, minval, maxval, interf, nsec)
 end
 
-ManualActuator(devname, val; minval=-Inf, maxval=Inf, nsec=0.0) =
-    ManualActuator(devname, val, TermMSG(); minval=minval, maxval=maxval, nsec=nsec)
+ManualActuator(devname, var, val=0; minval=-Inf, maxval=Inf, nsec=0.0) =
+    ManualActuator(devname, var, val, TermMSG(); minval=minval, maxval=maxval, nsec=nsec)
 
 numaxes(dev::ManualActuator) = 1
-axesnames(dev::ManualActuator) = [dev.devname]
+axesnames(dev::ManualActuator) = [dev.var]
 
 function move(dev::ManualActuator{T}, x) where{T}
 

@@ -4,7 +4,7 @@ export incpoint!, pointidx
 export AbstractExperimentMatrix, CartesianExperimentMatrix, ExperimentMatrixProduct
 export TestPositioner, numaxes, numparams, numpoints, experimentpoints
 export Positioner1d, PositionerNd
-export matrixparams
+export matrixparams, checkconsistency
 
 
 
@@ -376,6 +376,15 @@ function movenext!(actuators::AbstractVector{<:AbstractActuator},
     return true
 end
 
+function axesnames(acts::Union{Tuple,AbstractVector})
+    axes = String[]
+
+    for actuator in acts
+        append!(axes, axesnames(actuator))
+    end
+    return axes
+end
+
 
 """
 `movetopoint!(move, points)`
@@ -399,4 +408,5 @@ end
 
 
 
+checkconsistency(actuators, points) = axesnames(actuators) == matrixparams(points)
 

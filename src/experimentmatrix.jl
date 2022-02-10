@@ -359,11 +359,11 @@ function movenext!(actuators::AbstractVector{<:AbstractActuator},
     
     # Only move the coordinates that need to move:
     if idx == 0
-        for k in 1:ndev
+        for k in ndev:-1:1
             moveto(actuators[k], testpoint(points.points[k], 1))
         end
     else
-        for k in 1:ndev
+        for k in ndev:-1:1
             iold = points.ptsidx[idx,k]
             inew = points.ptsidx[idx+1,k]
             if iold != inew

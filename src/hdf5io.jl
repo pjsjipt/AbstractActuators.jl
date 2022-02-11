@@ -3,14 +3,19 @@ export saveactuatorconfig, saveexperimentmatrix
 using HDF5
 
 
-function saveactuatorconfig(h5, dev::AbstractActuator, idx=1)
+function saveactuatorconfig(h5, dev::AbstractActuator)
 
     dtype = string(typeof(dev))
     dname = devname(dev)
-    g = create_group(h5, dname)
-    g["type"] = dtype
-    g["axes"] = [string(a) for a in axesnames(dev)]
-    g["idx"] = idx
+    h5[dname] = [string(a) for a in axesnames(dev)]
+    attributes(h5[dname])["type"] = dtype
+    return
+end
+
+function saveactuatorconfig(h5, devs::AbstractVector{<:AbstractActuator})
+    for actuator in devs
+        saveactuatorconfig(h5, actuator)
+    end
     return
 end
 

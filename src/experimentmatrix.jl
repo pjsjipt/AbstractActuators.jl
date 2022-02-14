@@ -290,9 +290,6 @@ function experimentpoints(pts::ExperimentMatrixProduct)
     return points
 end
 
-    
-import Base.*
-
 """
 `m1*m2`
 
@@ -376,6 +373,9 @@ function movenext!(actuators::AbstractVector{<:AbstractActuator},
     return true
 end
 
+movenext!(actuators::ActuatorSet, points::ExperimentMatrixProduct) =
+    movenext!(actuators.actuators, points)
+
 function axesnames(acts::Union{Tuple,AbstractVector})
     axes = String[]
 
@@ -406,7 +406,8 @@ function movetopoint!(actuators::AbstractVector{<:AbstractActuator},
     end
 end
 
-
+movetopoint!(actuators::ActuatorSet, points::ExperimentMatrixProduct, idx=1) =
+    movetopoint!(actuators.actuators, points, idx)
 
 checkconsistency(actuators, points) = axesnames(actuators) == matrixparams(points)
 

@@ -74,6 +74,7 @@ function move(dev::ManualActuator{T}, x) where{T}
         throw(DomainError(x, "Outside valid range ($(dev.minval), $(dev.maxval))"))
     end
     dev.interface(dev, x)
+    dev.val = x
     sleep(dev.nsec)
     return
     

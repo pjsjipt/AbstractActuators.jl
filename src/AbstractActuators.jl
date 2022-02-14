@@ -31,6 +31,7 @@ abstract type AbstractCartesianRobot <: AbstractRobot end
     
 
 include("move_interface.jl")
+include("actuatorset.jl")
 include("experimentmatrix.jl")
 include("manualactuator.jl")
 include("testdevices.jl")

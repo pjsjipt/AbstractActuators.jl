@@ -226,11 +226,12 @@ experimentpoints(pts::CartesianExperimentMatrix) = pts.pts
 
 
     
-mutable struct ExperimentMatrixProduct <: AbstractExperimentMatrix
+mutable struct ExperimentMatrixProduct{PtsLst} <: AbstractExperimentMatrix
     idx::Int
-    points::Vector{AbstractExperimentMatrix}
+    points::PtsLst
     ptsidx::Matrix{Int}
-    ExperimentMatrixProduct(idx::Int, points::Vector{AbstractExperimentMatrix}, ptsidx::Matrix{Int}) = new(idx, points, ptsidx)
+    ExperimentMatrixProduct(idx::Int, points::PtsLst, ptsidx::Matrix{Int}) where {PtsLst} =
+        new{PtsLst}(idx, points, ptsidx)
 end
 
 
@@ -241,8 +242,7 @@ end
 
 Cartesian produc between different AbstractExperimentMatrix objects.
 """
-function ExperimentMatrixProduct(points::AbstractVector{<:AbstractExperimentMatrix})
-    points = AbstractExperimentMatrix[p for p in points]
+function ExperimentMatrixProduct(points::PtsLst) where {PtsLst}
     
     n = numpoints.(points)
     nmats = length(points)
@@ -256,8 +256,7 @@ function ExperimentMatrixProduct(points::AbstractVector{<:AbstractExperimentMatr
     return ExperimentMatrixProduct(0, points, ptsidx)
 end
 function ExperimentMatrixProduct(pts...)
-    points = AbstractExperimentMatrix[p for p in pts]
-    return ExperimentMatrixProduct(points)
+    return ExperimentMatrixProduct(pts)
 end
 
     

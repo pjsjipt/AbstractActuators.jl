@@ -2,28 +2,24 @@
 
 export ActuatorSet
 
-mutable struct ActuatorSet <: AbstractActuator
+mutable struct ActuatorSet{ActuatorList} <: AbstractActuator
     devname::String
-    actuators::Vector{AbstractActuator}
+    actuators::ActuatorList
 end
 
-function ActuatorSet(dname, acts::AbstractVector{<:AbstractActuator})
-    actuators = AbstractActuator[act for act in acts]
-
+function ActuatorSet(dname, acts::ActuatorList) where {ActuatorList}
     return ActuatorSet(dname, actuators)
-    
 end
 
 function ActuatorSet(dname, acts...)
 
-    actuators = AbstractActuator[act for act in acts]
-    return ActuatorSet(dname, actuators)
+    return ActuatorSet(dname, acts)
 end
 
     
 import Base.*
 
-*(a1::AbstractActuator, a2::AbstractActuator) = ActuatorSet("actuators", a1, a2)
+*(a1::AbstractActuator, a2::AbstractActuator) = ActuatorSet("actuators", (a1, a2))
 
 numaxes(actuators::ActuatorSet) = sum(numaxes(act) for act in actuators.actuators)
 

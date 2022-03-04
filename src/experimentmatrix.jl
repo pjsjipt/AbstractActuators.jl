@@ -346,25 +346,28 @@ function movenext!(actuator::AbstractActuator, points::AbstractExperimentMatrix)
     return true
 end
 
-function movenext!(actuators::AbstractVector{<:AbstractActuator},
-                   points::ExperimentMatrixProduct)
+function movenext!(actlst::ActuatorSet, points::ExperimentMatrixProduct) 
     
     idx = pointidx(points)
-    ndev = size(points.ptsidx,2) # Number of devices
+    if !checkconsistency(actlst, points)
+        error("The experimental points should be compatible with actuators!")
+    end
+    
+    ndev = size(points.ptsidx, 2)
 
     idx == numpoints(points) && return false # Over!
     
     # Only move the coordinates that need to move:
     if idx == 0
         for k in ndev:-1:1
-            moveto(actuators[k], testpoint(points.points[k], 1))
+            moveto(actlst.actuators[k], testpoint(points.points[k], 1))
         end
     else
         for k in ndev:-1:1
             iold = points.ptsidx[idx,k]
             inew = points.ptsidx[idx+1,k]
             if iold != inew
-                moveto(actuators[k], testpoint(points.points[k], inew))
+                moveto(actlst.actuators[k], testpoint(points.points[k], inew))
             end
         end
     end
@@ -373,17 +376,7 @@ function movenext!(actuators::AbstractVector{<:AbstractActuator},
     return true
 end
 
-movenext!(actuators::ActuatorSet, points::ExperimentMatrixProduct) =
-    movenext!(actuators.actuators, points)
 
-function axesnames(acts::Union{Tuple,AbstractVector})
-    axes = String[]
-
-    for actuator in acts
-        append!(axes, axesnames(actuator))
-    end
-    return axes
-end
 
 
 """
@@ -397,17 +390,18 @@ function movetopoint!(actuator::AbstractActuator, points::ExperimentMatrix, idx=
 end
 
 
-function movetopoint!(actuators::AbstractVector{<:AbstractActuator},
-                      points::ExperimentMatrixProduct, idx=1)
+function movetopoint!(actlst::ActuatorSet, points::ExperimentMatrixProduct, idx=1)
     
-    ndev = size(points.ptsidx,2) # Number of devices
-    for k in 1:ndev
-        moveto(actuators[k], testpoint(points.points[k], idx))
+    ndev = size(points,2)  # Number of independent devices
+
+    if !checkconsistency(actlst, points) 
+        error("The experimental points should be compatible with actuators!")
+    end
+    for k in ndev:-1:1
+        moveto(actlst.actuators[k], testpoint(points.points[k], idx))
     end
 end
 
-movetopoint!(actuators::ActuatorSet, points::ExperimentMatrixProduct, idx=1) =
-    movetopoint!(actuators.actuators, points, idx)
 
 checkconsistency(actuators, points) = axesnames(actuators) == matrixparams(points)
 

@@ -54,7 +54,24 @@ end
 
 `ManualActuator(devname, var, val; minval=Inf, maxval=Inf, nsec=0.0)`
 
-Creates a manual actuator.
+Creates a manual actuator. A manual actuator is an actuator that is not
+automated. The operator should manually operate it.
+
+This interface basically explicitly asks the operator to operate the actuator
+and waits until the operator says it can go on. 
+
+The issue here is the interface. The [`TermMSG`](@ref) uses the terminal to 
+show information and get input from the operator. Other interfaces such as
+different types of GUI could be implemented.
+
+The only requirement is that the object of type `MSG` should be callable with 
+two arguments: 
+
+ * The `ManualActuator` itself
+ * The position that the actuator should go to.
+
+This function will get input from the user to do this.
+
 
 """
 function ManualActuator(devname, var, val, interf::MSG; minval=-Inf,

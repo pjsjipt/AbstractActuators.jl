@@ -22,10 +22,13 @@ export stopmotion, waituntildone
 export TestRobot1d, TestRobot
 
 
-
+"Abstract base type for actuators"
 abstract type AbstractActuator <: AbstractDAQs.AbstractDevice end
+
+"Abstract base type for Robots"
 abstract type AbstractRobot <: AbstractActuator end
 
+"Abstract base type for cartesian robots"
 abstract type AbstractCartesianRobot <: AbstractRobot end
 
     

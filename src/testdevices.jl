@@ -1,15 +1,39 @@
 
 
 mutable struct TestRobot1d <: AbstractRobot
+    "Device name"
     devname::String
+    "Position"
     x::Float64
+    "Reference Position"
     xᵣ::Float64
+    "Name of the axis"
     axis::String
+    "Time that the program should sleep for each move"
     Δt::Float64
 end
 
+"""
+`TestRobot1d(devname, axis="θ";dt=0.0)`
+
+Creates a test robot with a single degree of freedom. Useful for testing the
+interfaces and simulating experiments.
+
+ * `devname`: a string with the device name
+ * `axis`: a string with the name of the axis
+ * `dt`: number of seconds that the program should wait before moving on. Useful to simulate an actual system that is not instantaneous.
+
+This test actuator tries to simulate the wind tunnel turntable so that it has
+a position and a reference that can be changed.
+"""
 TestRobot1d(devname, axis="θ";dt=0.0) = TestRobot1d(devname, 0.0, 0.0, axis, dt)
 
+"""
+`move(dev::TestRobot1d, x; a=false, r=false, sync=true)`
+
+Move the test robot to a new position. 
+It tries to emulate the `WMesaP` interface.
+"""
 function move(dev::TestRobot1d, x; a=false, r=false, sync=true)
     if r
         dev.x += x
@@ -57,6 +81,13 @@ mutable struct TestRobot <: AbstractCartesianRobot
     Δt::Float64
 end
 
+"""
+`TestRobot(devname, axes=["x", "y", "z"]; dt=0.0)`
+
+Creates a cartesian robot with several axes. It tries to emulate the interface
+used by the wind tunnel's cartesian robot (see the `RoboSimples` package at
+<https://github.com/pjsjipt/RoboSimples.jl>).
+"""
 function TestRobot(devname, axes=["x", "y", "z"]; dt=0.0)
     n = length(axes)
     axidx = Dict{String,Int}()

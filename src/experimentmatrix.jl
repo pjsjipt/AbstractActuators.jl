@@ -8,6 +8,7 @@ export matrixparams, checkconsistency
 
 
 
+"Abstract base type for defining experimental points"
 abstract type AbstractExperimentMatrix end
 
 
@@ -89,6 +90,7 @@ Returns the names of the parameters.
 """
 matrixparams(pts::AbstractExperimentMatrix) = pts.params
 
+"Number of parameters in an `ExperimentMatrix"
 numparams(M::ExperimentMatrix) = length(M.params)
 
 """
@@ -227,8 +229,11 @@ experimentpoints(pts::CartesianExperimentMatrix) = pts.pts
 
     
 mutable struct ExperimentMatrixProduct{PtsLst} <: AbstractExperimentMatrix
+    "Current experimental point"
     idx::Int
+    "List of experimental points objects"
     points::PtsLst
+    "Matrix with points index in each actuator"
     ptsidx::Matrix{Int}
     ExperimentMatrixProduct(idx::Int, points::PtsLst, ptsidx::Matrix{Int}) where {PtsLst} =
         new{PtsLst}(idx, points, ptsidx)
@@ -237,10 +242,22 @@ end
 
 
 """
-`ExperimentMatrixProduct(pts...)`
+`ExperimentMatrixProduct(points::PtsLst)`
 
 
-Cartesian produc between different AbstractExperimentMatrix objects.
+Cartesian product between different AbstractExperimentMatrix objects.
+
+Imagine an experiment where several actuators are used. As an example, in a 
+wind tunnel this could be a cartesian robot with 3 axes, the turn table and 
+fan speed. During the experiment, all actuators will be used and each 
+experimental point corresponds to a a given configuration of the actuators.
+
+The `ExperimentMatrixProduct` combines the the experimental points of each 
+actuator into a single 'meta-'point. 
+
+The arguement `points` is a tuple or vector of `AbstractExeperimentMatrix`.
+
+The order of motion is: first points first. 
 """
 function ExperimentMatrixProduct(points::PtsLst) where {PtsLst}
     
@@ -260,12 +277,19 @@ function ExperimentMatrixProduct(pts...)
 end
 
     
-
+"Number of points in `ExperimentMatrixProduct`"
 numpoints(pts::ExperimentMatrixProduct) = size(pts.ptsidx,1)
+"Number of parameters in `ExperimentMatrixProduct`"
 numparams(pts::ExperimentMatrixProduct) = sum(numparams.(pts.points))
+"Names of matrix parameters `ExperimentMatrixProduct`"
 matrixparams(pts::ExperimentMatrixProduct) = vcat([matrixparams(p) for p in pts.points]...)
 
 
+"""
+`testpoint(pts::ExperimentMatrixProduct, i)`
+
+Returns the i-th test point (coordinates of the points).
+"""
 function testpoint(pts::ExperimentMatrixProduct, i)
     x = Float64[]
 
@@ -277,6 +301,13 @@ function testpoint(pts::ExperimentMatrixProduct, i)
     
 end
 
+"""
+`experimentpoints(pts::ExperimentMatrixProduct)`
+
+Returns a matrix with the coordinates of every experiment point.
+Each row corresponds to an experiment point and each column to an 
+experiment parameter (axis).
+"""
 function experimentpoints(pts::ExperimentMatrixProduct)
     npts = numpoints(pts)
 
@@ -345,6 +376,18 @@ function movenext!(actuator::AbstractActuator, points::AbstractExperimentMatrix)
     return true
 end
 
+"""
+`movenext!(actlst::ActuatorSet, points::ExperimentMatrixProduct)`
+
+Method for moving to the next experimental point. This method is specialized
+for cases where each actuator in a set of actuators has a corresponding 
+experiment matrix. 
+
+In this case, the motion is optimized so that only the actuators that need
+to actuate (move) are called. The others are not touched upon.
+
+
+"""
 function movenext!(actlst::ActuatorSet, points::ExperimentMatrixProduct) 
     
     idx = pointidx(points)
@@ -401,6 +444,13 @@ function movetopoint!(actlst::ActuatorSet, points::ExperimentMatrixProduct, idx=
     end
 end
 
+"""
+`checkconsistency(actuators, points)`
 
+The consistency is that the names of actuators' axes should be the same
+as the experimental matrix points parameters.
+
+
+"""
 checkconsistency(actuators, points) = axesnames(actuators) == matrixparams(points)
 

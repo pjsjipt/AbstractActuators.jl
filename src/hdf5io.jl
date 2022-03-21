@@ -27,7 +27,10 @@ function saveactuatorconfig(h5, devs::ActuatorSet)
     g = create_group(h5, dname)
     attributes(g)["axes"] = axes
     attributes(g)["type"] = dtype
-    saveactuatorconfig(g, devs.actuators)
+    for actuator in devs.actuators
+        saveactuatorconfig(g, actuator)
+    end
+    
     return
 
 end

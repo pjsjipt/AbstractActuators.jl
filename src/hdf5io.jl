@@ -2,7 +2,11 @@ export saveactuatorconfig, saveexperimentmatrix
 
 using HDF5
 
+"""
+`saveactuatorconfig(h5, dev::AbstractActuator)`
 
+Saves an actuator configuration to a HDF5 file.
+"""
 function saveactuatorconfig(h5, dev::AbstractActuator)
 
     dtype = string(typeof(dev))
@@ -19,6 +23,12 @@ function saveactuatorconfig(h5, devs::AbstractVector{<:AbstractActuator})
     return
 end
 
+"""
+`saveactuatorconfig(h5, devs::ActuatorSet)`
+
+Saves an [`ActuatorSet`](@ref) configuration to a HDF5 file. It basically 
+saves the configuration of each individual actuator in the set.
+"""
 function saveactuatorconfig(h5, devs::ActuatorSet)
 
     dtype = string(typeof(devs))
@@ -35,6 +45,11 @@ function saveactuatorconfig(h5, devs::ActuatorSet)
 
 end
 
+"""
+`saveexperimentmatrix(h5, pts::ExperimentMatrix, name="points")`
+
+Saves the experimental matrix points to an HDF5 file.
+"""
 function saveexperimentmatrix(h5, pts::ExperimentMatrix, name="points")
 
     params = matrixparams(pts)
@@ -50,7 +65,13 @@ function saveexperimentmatrix(h5, pts::ExperimentMatrix, name="points")
     return
 end
 
-numstring(x, n=3) = string(10^n+x)[2:end]
+"""
+`saveexperimentmatrix(h5, pts::CartesianExperimentMatrix, name="points")`
+
+Saves the `CartesianExperimentMatrix` points to an HDF5 file. This specific
+method is useful when the points is the cartesian product of several axis
+and you want to know each axis besides the coordinates of every point.
+"""
 function saveexperimentmatrix(h5, pts::CartesianExperimentMatrix, name="points")
 
     dtype = string(typeof(pts))

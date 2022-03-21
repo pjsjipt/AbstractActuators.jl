@@ -7,6 +7,11 @@ mutable struct ActuatorSet{ActuatorList} <: AbstractActuator
     actuators::ActuatorList
 end
 
+"""
+`ActuatorSet(dname, acts::ActuatorList)`
+
+Create a meta actuator from individual actuators.
+"""
 function ActuatorSet(dname, acts::ActuatorList) where {ActuatorList}
     return ActuatorSet(dname, actuators)
 end
@@ -21,8 +26,10 @@ import Base.*
 
 *(a1::AbstractActuator, a2::AbstractActuator) = ActuatorSet("actuators", (a1, a2))
 
+"Number of axes (degrees of freedom) of the actuator set"
 numaxes(actuators::ActuatorSet) = sum(numaxes(act) for act in actuators.actuators)
 
+"Return the axes names of the `ActuatorSet`"
 function axesnames(actuators::ActuatorSet)
 
     nn = String[]
@@ -36,6 +43,7 @@ function axesnames(actuators::ActuatorSet)
     return nn
 end
 
+"Get the actuators to `move` to a point given by the components of x"
 function moveto(actuators::ActuatorSet, x)
 
     naxes = 0

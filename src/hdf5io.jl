@@ -12,7 +12,7 @@ function saveactuatorconfig(h5, dev::AbstractActuator)
     dtype = string(typeof(dev))
     dname = devname(dev)
     h5[dname] = [string(a) for a in axesnames(dev)]
-    attributes(h5[dname])["type"] = dtype
+    attributes(h5[dname])["devtype"] = dtype
     return
 end
 
@@ -74,7 +74,7 @@ and you want to know each axis besides the coordinates of every point.
 """
 function saveexperimentmatrix(h5, pts::CartesianExperimentMatrix, name="points")
 
-    dtype = string(typeof(pts))
+    dtype = "CartesianExperimentMatrix"
     params = matrixparams(pts)
     nparams = length(params)
 
@@ -98,7 +98,7 @@ end
 
 function saveexperimentmatrix(h5, pts::ExperimentMatrixProduct, name="points")
 
-    dtype = string(typeof(pts))
+    dtype = "ExperimentMatrixProduct"
     params = matrixparams(pts)
     nparams = length(params)
 
@@ -113,7 +113,6 @@ function saveexperimentmatrix(h5, pts::ExperimentMatrixProduct, name="points")
     attributes(g)["type"] = dtype
     npoints = length(pts.points)
     attributes(g)["npoints"] = npoints
-
     for i in 1:npoints
         nn = numstring(i, 4)
         saveexperimentmatrix(g, pts.points[i], nn)

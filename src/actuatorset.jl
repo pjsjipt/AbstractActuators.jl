@@ -21,6 +21,21 @@ function ActuatorSet(dname, acts...)
     return ActuatorSet(dname, acts)
 end
 
+import Base.getindex
+getindex(act::ActuatorSet, i) = act.actuators[i]
+
+function getindex(act::ActuatorSet, dname::AbstractString)
+    for dev in act.actuators
+        if devname(dev) == dname
+            return dev
+        end
+    end
+
+    # If we got here, this the actuator doesn't exist
+    # throw an exception:
+    throw(KeyError(dname))
+end
+
     
 import Base.*
 
